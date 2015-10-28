@@ -8,7 +8,7 @@
 
 3. Locate this folder under C:\Moodle\server\moodle\<br>
 
-V4. isit <a href ="http://localhost/testreservation/testReservationTable.php" >http://localhost/testreservation/testReservationTable.php</a> to start the webpage<br>
+4. Visit <a href ="http://localhost/testreservation/testReservationTable.php" >http://localhost/testreservation/testReservationTable.php</a> to start the webpage<br>
 </p>
 
 <h3>Software Docs</h3>
