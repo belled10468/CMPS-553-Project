@@ -4,7 +4,7 @@ require_once ('./testReservationUtil.php');
 // require_login();
 
 // Need group verification
-$isStaff = false;
+$isStaff = verifyODSIdentity();
 
 $PAGE->set_context ( get_system_context () );
 $PAGE->set_pagelayout ( 'standard' );
@@ -33,8 +33,8 @@ try {
 					// $lastinsertid = $DB->insert_record_raw ( $testReservationTransactionRecordTableName, $tansaction, false );
 					break;
 				case "update" :
-					$previousReservationId = $_POST ['previousReservationId'];
-					$sql = "UPDATE `$testReservationRecordTableName` SET is_vaild = 0 WHERE id = $previousReservationId";
+					$previousReservationId = $_POST ['targetReservationId'];
+					$sql = "UPDATE `$testReservationRecordTableName` SET is_valid = 0 WHERE id = $previousReservationId";
 					$DB->execute ( $sql );
 					directSQLInsertRR ( $_POST );
 					directSQLInsertRT ( $submitType, $_POST );
@@ -44,8 +44,8 @@ try {
 					// $lastinsertid = $DB->insert_record ( $testReservationTransactionRecordTableName, $tansaction, false );
 					break;
 				case "delete" :
-					$deletedReservationId = $_POST ['deletedReservationId'];
-					$sql = "UPDATE `$testReservationRecordTableName` SET is_vaild = 0 WHERE id = $deletedReservationId";
+					$deletedReservationId = $_POST ['targetReservationId'];
+					$sql = "UPDATE `$testReservationRecordTableName` SET `is_valid` = 0 WHERE id = $deletedReservationId";
 					$DB->execute ( $sql );
 					directSQLInsertRT ( $submitType, $_POST );
 					// $record = createReservationRecordObj ( $_POST );
@@ -54,29 +54,13 @@ try {
 					break;
 			}
 		}
-		if ($isStaff) {
-			$sql = "SELECT t.`id`, t.`register_id`, 
-		u.`username`, u.`firstname`, u.`middlename`, u.`lastname`,
-		t.`class`, c.`fullname` as coursename, t.`instructors`, 
-		t.`test_type`,  t.`original_test_time`, t.`test_date`, t.`test_start_time`,
-		t.`test_duration`, t.`preference`, t.`accommodation`, 
-		t.`return_type`, t.`created_date` 
-		FROM `$testReservationRecordTableName` t " . "JOIN mdl_user u ON u.id = t.`register_id`". "JOIN mdl_course c ON c.id = t.`class`" . "WHERE t.is_valid = 1 ";
-		} else {
-			$sql = "SELECT t.`id`, t.`register_id`,
-			t.`class`, c.`fullname` as coursename, t.`instructors`,
-			t.`test_type`,  t.`original_test_time`, t.`test_date`, t.`test_start_time`,
-			t.`test_duration`, t.`preference`, t.`accommodation`,
-			t.`return_type`, t.`created_date` 
-			FROM `$testReservationRecordTableName` t ".
-			"JOIN mdl_course c ON c.id = t.`class`". 
-			"WHERE t.is_valid = 1 AND t.register_id = ".$USER->id;
-		}
-		$recordset = $DB->get_recordset_sql ( $sql );
-
-		$formatedRecordSet = formatRecordSet ( $recordset , $isStaff);
+		$recordset = getRecordSet($isStaff);
+		$recordArray = recordSetToArray($recordset);
+		$formatedRecordArray = formatRecordArray ( $recordArray, $isStaff );
+		
 	} else {
-		echo "Database Configuration Error! ";
+		echo "Database Configuration Error! \n";
+		echo "Cannot find required tables.";
 	}
 	$transaction->allow_commit ();
 } catch ( Exception $e ) {
@@ -105,35 +89,69 @@ echo $OUTPUT->header ();
 			<th>Ret type</th>
 			<th>Operations</th>
 		</tr>
-		<?php 
-		foreach($formatedRecordSet as $formatedRecord){
+		<?php
+		foreach ( $formatedRecordArray as $k => $formatedRecord ) {
 			echo "<tr>";
-			foreach($formatedRecord as $field){
+			echo "<td class = 'recordData' style = 'display: none'>".json_encode($recordArray[$k])."</td>";
+			foreach ( $formatedRecord as $field ) {
 				echo "<td>$field</td>";
 			}
+			echo "<td>";
+			echo "<div class = 'edit button' onclick='editRecord($k, $(this));'><span class='ui-icon ui-icon-pencil'></div>";
+			echo "<div class = 'delete button' onclick='deleteRecord($k);'><span class='ui-icon ui-icon-trash'></span></div>";
+			echo "</td>";
 			echo "</tr>";
 		}
 		?>
 	</tbody>
 </table>
+<form id = "submitForm" method="post"></form>
 <div id="controlPanel">
+<?php if(!$isStaff){?>
 	<div class="button" id="add"
 		onclick="location.href='testReservationForm.php';">Add New Reservation</div>
-	<div class="button" id="generateReport" style="display: none">Generate
+		<?php }else{?>
+	<div class="button" id="generateReport">Generate
 		Report</div>
+		<?php }?>
 </div>
-<div class="dialog" id="warningDialog"></div>
+<div class="dialog" id="warningDialog">
+	<p></p>
+</div>
+<div id="deleteConfirmationDialog" class="dialog" title="Confirmation">
+	<table>
+		<tr>
+			<td colspan="3">
+				<p>Do you really want to delete this reservation?</p>
+			</td>
+		</tr>
+		<tr>
+			<td>
+				<div class="button horizontalCenter" id="confirmDelete">delete</div>
+			</td>
+			<td>
+				<div class="button horizontalCenter"
+					onclick="$('#deleteConfirmationDialog').dialog('close');">cancel</div>
+			</td>
+		</tr>
+	</table>
+</div>
 <script type="text/javascript"
 	src="<?php echo $CFG->wwwroot?>/lib/jquery/jquery-1.11.2.min.js"></script>
 <script type="text/javascript"
 	src="<?php echo $CFG->wwwroot?>/lib/jquery/ui-1.11.4/jquery-ui.min.js"></script>
 <script type="text/javascript"
 	src="<?php echo $CFG->wwwroot?>/testreservation/js/jquery.dataTables.min.js"></script>
+<script type="text/javascript"
+	src="<?php echo $CFG->wwwroot?>/testreservation/js/testReservationTable.js"></script>
 <script type="text/javascript">
 
 $(document).ready(function(){
 $(".button").button();
+// $('.edit').button( "option", "icons", 'ui-icon-pencil');
+// $('.delete').button( "option", "icons", 'ui-icon-trash');
 $(".dialog").dialog({"autoOpen":false});
+$( "#warningDialog" ).on( "dialogclose", function( event, ui ) {$("#warningDialog p").text("");} );
 $('#testReservationRecordTable').DataTable();
 	});
 

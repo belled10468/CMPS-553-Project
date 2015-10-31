@@ -1,46 +1,65 @@
 <?php
 require_once ('../config.php');
+require_once ('./testReservationUtil.php');
 
-//require_login();
+// require_login();
+// Need group verification
+$isStaff = verifyODSIdentity ();
 
 $PAGE->set_context ( get_system_context () );
 $PAGE->set_pagelayout ( 'standard' );
 $PAGE->set_title ( "Test Reservation Form" );
 $PAGE->set_heading ( "Test Reservation Form" );
 $PAGE->set_url ( $CFG->wwwroot . '/testreservation/testReservationForm.php' );
+$availableRecord;
+if (array_key_exists ( "submitType", $_POST )) {
+	if ($_POST ['submitType'] == "update") {
+		$recordset = getRecordSet ( $isStaff, $_POST ['targetReservationId'] );
+		
+		if ($recordset->valid ()) {
+			
+			foreach ( $recordset as $record ) {
+				$availableRecord = formatRecordIntoForm ( get_object_vars ( $record ) );
+			}
+		}
+		if ($availableRecord == Null) {
+			// Add one button for return
+			die ( "No Valid Record!" );
+		}
+	}
+}
+// get User Id
+if ($isStaff) {
+	// register_id not null
+	$userId = $availableRecord ['register_id'];
+} else {
+	$userId = $USER->id;
+}
+$selectedCourses = enrol_get_all_users_courses ( $userId );
 
-//get User Id
-$userId = $USER->id;
-//Verify user group?
-//Verify user identity?
+$courseTeacherMap = array ();
 
-
-$selectedCourses = enrol_get_all_users_courses($userId);
-
-$courseTeacherMap = array();
-
-//Allow users to modify the instructor fields?
+// Allow users to modify the instructor fields?
 global $DB;
 try {
-	foreach($selectedCourses as $k => $selectedCourse){
+	foreach ( $selectedCourses as $k => $selectedCourse ) {
 		$courseId = $selectedCourse->id;
-		$courseTeacherMap[$courseId] = array();
-		$teachers = $DB->get_records_sql(
-				"SELECT u.lastname, u.middlename, u.firstname, u.id
+		$courseTeacherMap [$courseId] = array ();
+		$teachers = $DB->get_records_sql ( "SELECT u.lastname, u.middlename, u.firstname, u.id
 				FROM mdl_course c
 				JOIN mdl_context ct ON c.id = ct.instanceid
 				JOIN mdl_role_assignments ra ON ra.contextid = ct.id
 				JOIN mdl_user u ON u.id = ra.userid
 				JOIN mdl_role r ON r.id = ra.roleid
-				WHERE r.id = 3 and c.id = $courseId");
-		foreach($teachers as $k => $teacher){
-			$teacherName = $teacher->firstname . (strlen($teacher->middlename) > 0?" ".$teacher->middlename." ":" ") . $teacher->lastname;
-			$courseTeacherMap[$courseId][$teacher->id]=$teacherName;
+				WHERE r.id = 3 and c.id = $courseId" );
+		foreach ( $teachers as $k => $teacher ) {
+			$teacherName = $teacher->firstname . (strlen ( $teacher->middlename ) > 0 ? " " . $teacher->middlename . " " : " ") . $teacher->lastname;
+			$courseTeacherMap [$courseId] [$teacher->id] = $teacherName;
 		}
 	}
-} catch(Exception $e) {
+} catch ( Exception $e ) {
 }
-$courseTeacherMapJson = json_encode($courseTeacherMap);
+$courseTeacherMapJson = json_encode ( $courseTeacherMap );
 echo $OUTPUT->header ();
 ?>
 <link rel="stylesheet" type="text/css"
@@ -49,15 +68,28 @@ echo $OUTPUT->header ();
 	href="<?php echo $CFG->wwwroot?>/testreservation/css/testReservationForm.css">
 
 <div>
-	<form id="testReservationForm" action="testReservationTable.php" method="post">
+	<form id="testReservationForm" action="testReservationTable.php"
+		method="post">
 		<table>
+		<?php if($isStaff){?>
+		<tr>
+				<td>Student Name:</td>
+				<td><b><?php echo $availableRecord['username']?></b></td>
+			</tr>
+			<tr>
+				<td>CLID:</td>
+				<td><b><?php echo $availableRecord['firstname'] . " " . (strlen ( $availableRecord['middlename'] ) > 0 ? $availableRecord['middlename'] . " " : "") . $availableRecord['lastname']?></b></td>
+			</tr>
+		<?php }?>
 			<tr>
 				<td>Class Name:</td>
-				<td><select name ="class">
-				<?php 
-				echo "<option selected></option>";
-				foreach($selectedCourses as $k => $selectedCourse){
-					echo "<option value = '".$selectedCourse->id."'>".$selectedCourse->fullname."</option>";
+				<td><select name="class">
+
+						<option value=''></option>
+				<?php
+				foreach ( $selectedCourses as $k => $selectedCourse ) {
+					$courseId = $selectedCourse->id;
+					echo "<option value = '" . $courseId . "' " . " >" . $selectedCourse->fullname . "</option>";
 				}
 				
 				?>
@@ -65,71 +97,156 @@ echo $OUTPUT->header ();
 			</tr>
 			<tr>
 				<td>Test Type:</td>
-				<td>
-				<input type = "radio" id="normalType" name ="testType" class = "availableTimeValidation" value = "normal" checked><label for ="normalType">normal</label>
-				<input type = "radio" id="finalType" name ="testType" class = "availableTimeValidation"  value = "final"><label for ="finalType">final</label>
-				</td>
+				<td><input type="radio" id="testType-normal" name="testType"
+					class="availableTimeValidation" value="normal"><label
+					for="testType-normal">normal</label> <input type="radio"
+					id="testType-final" name="testType" class="availableTimeValidation"
+					value="final"><label for="testType-final">final</label></td>
 			</tr>
 			<tr>
 				<td>Instructor:</td>
-				<td><input type = "text" name ="instructor"></td>
+				<td><input type="text" name="instructor"></td>
 			</tr>
 			<tr>
 				<td>Original Test Time:</td>
-				<td><input type = "text" class = "datepicker" name ="originalTestDate"><input type = "text" class = "time" name ="originalTestTime"></td>
+				<td><input type="text" class="datepicker" name="originalTestDate"> <input
+					type="text" class="time" name="originalTestTime"></td>
 			</tr>
 			<tr>
 				<td>Test Time Length:</td>
-				<td><input type = "text"  class = "timeLength availableTimeValidation" name ="testLength" min = "0">mins</td>
+				<td><input type="text" class="timeLength availableTimeValidation"
+					name="testLength" min="0">mins</td>
 			</tr>
 			<tr>
 				<td>Reserved Test Date:</td>
-				<td><input type = "text" class = "datepicker availableTimeValidation" name ="reservedTestDate"></td>
+				<td><input type="text" class="datepicker availableTimeValidation"
+					name="reservedTestDate"></td>
 			</tr>
 			<tr>
 				<td>Reserved Test Time:</td>
-				<td><input type = "text" class = "time availableTimeValidation" name ="reservedTestTime" ></td>
+				<td><input type="text" class="time availableTimeValidation"
+					name="reservedTestTime"></td>
 			</tr>
 			<tr>
 				<td>Required Resources:</td>
-				<td>
-				<input type = "checkbox" id="computerRequired" name ="requiredResources[]" value = "Computer"><label for ="computerRequired">Computer</label>
-				<input type = "checkbox" id="InternetRequired" name ="requiredResources[]" value = "Internet"><label for ="InternetRequired">Internet</label>
-				<input type = "checkbox" id="privateRoomRequired" name ="requiredResources[]" value = "Private Room"><label for ="privateRoomRequired">Private Room</label>
-				</td>
+				<td><input type="checkbox" id="requiredResources-Computer"
+					name="requiredResources[]" value="Computer"><label
+					for="requiredResources-Computer">Computer</label> <input
+					type="checkbox" id="requiredResources-Internet"
+					name="requiredResources[]" value="Internet"><label
+					for="requiredResources-Internet">Internet</label> <input
+					type="checkbox" id="requiredResources-Private_Room"
+					name="requiredResources[]" value="Private Room"><label
+					for="requiredResources-Private_Room">Private Room</label></td>
+			</tr>
+			<?php if($isStaff){?>
+			<tr>
+				<td>Returning Instructions:</td>
+				<td><input type="radio"
+					id="returningInstructions-Hand_Deliver_to_department"
+					name="returningInstructions[]" value="Hand Deliver to department"><label
+					for="returningInstructions-Hand_Deliver_to_department">Hand Deliver
+						to department</label> <input type="radio"
+					id="returningInstructions-Will_pick_up"
+					name="returningInstructions[]" value="Will pick up"><label
+					for="returningInstructions-Will_pick_up">Will pick up</label> <input
+					type="radio" id="returningInstructions-Call_for_pick_up"
+					name="returningInstructions[]" value="Call for pick up"
+					class="optionWithTextField"><label
+					for="returningInstructions-Call_for_pick_up">Call for pick up</label><input
+					type="text" class="optionTextField"
+					for="returningInstructions-Call_for_pick_up"
+					placeholer="Phone Number"> <input type="radio"
+					id="returningInstructions-other" name="returningInstructions[]"
+					value="Other" class="optionWithTextField"><label
+					for="returningInstructions-other">Other</label><input type="text"
+					class="optionTextField" for="returningInstructions-other"></td>
 			</tr>
 			<tr>
-				<td>
-					<input type = "hidden" name="submitType" value = "new">
-				</td>
+				<td>Testing Instructions:</td>
+				<td><input type="checkbox" id="testingInstructions-Extra_Paper"
+					name="testingInstructions[]" value="Extra Paper"><label
+					for="testingInstructions-Extra_Paper">Extra Paper</label> <input
+					type="checkbox" id="testingInstructions-Statistical_Tables"
+					name="testingInstructions[]" value="Statistical Tables"><label
+					for="testingInstructions-Statistical_Tables">Statistical Tables</label>
+					<input type="checkbox" id="testingInstructions-Open_Book"
+					name="testingInstructions[]" class="optionWithTextField"><label
+					for="testingInstructions-Open_Book">Open Book</label><input
+					type="text" class="optionTextField"
+					for="testingInstructions-Open_Book"><input type="checkbox"
+					id="testingInstructions-Open_Notes" name="testingInstructions[]"
+					class="optionWithTextField"><label for="testingInstructions-Open_Notes">Open Notes</label><input
+					type="text" class="optionTextField" for="testingInstructions-Open_Notes"><input
+					type="checkbox" id="testingInstructions-Calculator"
+					name="testingInstructions[]" class="optionWithTextField"><label
+					for="testingInstructions-Calculator">Calculator</label><input type="text"
+					class="optionTextField" for="testingInstructions-Calculator"><input
+					type="checkbox" id="testingInstructions-other"
+					name="testingInstructions[]" class="optionWithTextField"><label
+					for="testingInstructions-other">Other</label><input type="text"
+					class="optionTextField" for="testingInstructions-other"></td>
+			</tr>
+			<?php }?>
+			<tr>
+				<td><input type="hidden" name="submitType"
+					value='<?php echo (array_key_exists('submitType', $_POST)?$_POST['submitType']:'new')?>'>
+					<input type="hidden" name="targetReservationId"
+					<?php defaultValueApply($availableRecord['id'], "text")?>></td>
 			</tr>
 		</table>
 	</form>
-	<div id = "controlPanel">
-	<div class = "button horizontalCenter" id = "submit">Submit</div>
-	<div class = "button" id = "update" style = "display:none">Update</div>
-	<div class = "button" id = "delete" style = "display:none">Delete</div>
+	<div id="controlPanel">
+	<?php if(!array_key_exists('submitType', $_POST)){?>
+	<div class="button horizontalCenter" id="submit">Submit</div>
+	<?php }else if ($_POST['submitType'] == 'update'){?>
+	<div class="button horizontalCenter" id="update">Update</div>
+		<div class="button" id="delete">Delete</div>
+	<?php }?>
 	<div class="button" id="cancel"
-		onclick="location.href='testReservationTable.php';">Cancel</div>
-	
+			onclick="location.href='testReservationTable.php';">Cancel</div>
+
 	</div>
 </div>
 
-<div id ="workTimeDialog" class = "dialog" title = "ODS Office Working Hours" style = "display:none">
+<div id="workTimeDialog" class="dialog" title="ODS Office Working Hours"
+	style="display: none">
 
-		<h5>Normal Exam: </h5>
-		<b>Mon - Thu:</b> 7:30 AM - 4:45 PM<br>
-		<b>Fri:</b> 7:30 AM - 12:15 PM<br>
-		<h5>Final Exam: </h5>
-		<b>Mon - Thu:</b> 7:30 AM - 7:00 PM<br>
-		<b>Fri:</b> 7:30 AM - 2:00 PM<br>
+	<h5>Normal Exam:</h5>
+	<b>Mon - Thu:</b> 7:30 AM - 4:45 PM<br> <b>Fri:</b> 7:30 AM - 12:15 PM<br>
+	<h5>Final Exam:</h5>
+	<b>Mon - Thu:</b> 7:30 AM - 7:00 PM<br> <b>Fri:</b> 7:30 AM - 2:00 PM<br>
 
-		<div class = "button horizontalCenter" onclick="$('#workTimeDialog').dialog('close');" style=" margin-top:20px;">close</div>
+	<div class="button horizontalCenter"
+		onclick="$('#workTimeDialog').dialog('close');"
+		style="margin-top: 20px;">close</div>
 </div>
-
-<div id ="warningDialog" class = "dialog" title = "Warning" style = "display:none">
-<p><b>Please Complete the Red Fields</b></p>
-<div class = "button horizontalCenter" onclick="$('#warningDialog').dialog('close');" style=" margin-top:20px;">close</div>
+<div id="deleteConfirmationDialog" class="dialog" title="Confirmation">
+	<table>
+		<tr>
+			<td colspan="3">
+				<p>Do you really want to delete this reservation?</p>
+			</td>
+		</tr>
+		<tr>
+			<td>
+				<div class="button horizontalCenter" id="confirmDelete">delete</div>
+			</td>
+			<td>
+				<div class="button horizontalCenter"
+					onclick="$('#deleteConfirmationDialog').dialog('close');">cancel</div>
+			</td>
+		</tr>
+	</table>
+</div>
+<div id="warningDialog" class="dialog" title="Warning"
+	style="display: none">
+	<p>
+		<b>Please Complete the Red Fields</b>
+	</p>
+	<div class="button horizontalCenter"
+		onclick="$('#warningDialog').dialog('close');"
+		style="margin-top: 20px;">close</div>
 </div>
 
 <script type="text/javascript"
@@ -140,13 +257,16 @@ echo $OUTPUT->header ();
 	src="<?php echo $CFG->wwwroot?>/testreservation/js/jquery.inputmask.bundle.min.js"></script>
 <script type="text/javascript"
 	src="<?php echo $CFG->wwwroot?>/testreservation/js/testReservationForm.js"></script>
-	
-	<script>
+
+<script>
 	//which one is required
 	
 	var courseTeacherMapJson ='<?php echo (strlen($courseTeacherMapJson)>0?$courseTeacherMapJson:"{}");?>';
-	
+	var oldRecord ='<?php echo ($availableRecord != Null?json_encode($availableRecord):"{}");?>';
 $(document).ready(function(){
+
+	setPreviousRecord(JSON.parse(oldRecord));
+	
 	$(".button").button();
 	$( ".datepicker" ).datepicker({
 		  dateFormat: "yy-mm-dd"
@@ -159,14 +279,22 @@ $(document).ready(function(){
 	$("#workTimeDialog").dialog("close");
 	$("#workTimeDialog").show();
 
-	$("#submit").click(function(){
+	$("#submit, #update").click(function(){
 		console.log($("#testReservationForm").serialize());
+		appendTextFieldOnOptionValue();
 		if(validateSubmittedFields()){
 			$("#testReservationForm").submit();
 		}else{
-$("#warningDialog").dialog("open");
-			}
+		$("#warningDialog").dialog("open");
+		}
 			});
+	$("#delete").click(function(){
+		$("#deleteConfirmationDialog").dialog("open");
+	});
+	$("#confirmDelete").click(function(){
+		$("input[name = 'submitType']").val("delete");
+		$("#testReservationForm").submit();
+	});
 	$(".availableTimeValidation").change(validateWorkTimeShift);
 	$("select[name='class']").change(function(){
 		var courseId = $("select[name='class']").val();
@@ -182,6 +310,8 @@ $("#warningDialog").dialog("open");
 			$("input[name='instructor']").val(teacherNamesString);
 		}
 	});
+
+	
 
 })
 

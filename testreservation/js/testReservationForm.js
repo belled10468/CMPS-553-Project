@@ -38,7 +38,7 @@ function validateWorkTimeShift() {
 }
 function validateSubmittedFields() {
 	var vailadationResult = true;
-	$("#testReservationForm").find("input:not(input[name='instructor']), select").each(function() {
+	$("#testReservationForm").find("input:not(input[name='instructor'], .optionTextField), select").each(function() {
 		var value = $(this).val();
 		if (value == undefined || value == "") {
 			invalidateTarget($(this))
@@ -49,6 +49,13 @@ function validateSubmittedFields() {
 		invalidateTarget($(".timeLength"))
 		vailadationResult = false;
 	}
+	$(".optionWithTextField:checked").each(function(){
+		var objId = $(this).attr("id");
+		if($("input[for='"+objId+"']").val() == undefined || $("input[for='"+objId+"']").val() == ""){
+			invalidateTarget($("input[for='"+objId+"']"))
+			vailadationResult = false;
+		}
+	});
 	return vailadationResult;
 }
 
@@ -85,4 +92,34 @@ function validTimePeriod(time, lowerBound, upperBound, testLength) {
 			return false;
 		}
 	}
+}
+
+function setPreviousRecord(oldRecord){
+	console.log(oldRecord);
+	//if(Object.keys(oldRecord).length > 0){
+	console.log(oldRecord['class']);
+	$("select[name='class']").val(oldRecord['class']);
+	$("input[name='instructor']").val(oldRecord['instructors']);
+	$("input[name='originalTestDate']").val(oldRecord['original_test_date']);
+	$("input[name='originalTestTime']").val(oldRecord['original_test_time']);
+	$("#testType-"+oldRecord['test_type'].replace(" ", "_")).prop("checked", true);
+	$("input[name='testLength']").val(oldRecord['test_duration']);
+	$("input[name='reservedTestDate']").val(oldRecord['test_date']);
+	$("input[name='reservedTestTime']").val(oldRecord['test_start_time']);
+	$.each(oldRecord['accommodation'], function(k, v){
+		$("#requiredResources-"+k.replace(" ", "_")).prop("checked", true);
+	});
+	$.each(oldRecord['return_type'], function(k, v){
+		$("#returningInstructions-"+k.replace(" ", "_")).prop("checked", true);
+	});
+//	$.each(oldRecord['preference'], function(k, v){
+//		$("#testingInstructions-"+k.replace(" ", "_")).prop("checked", true);
+//	});
+}
+
+function appendTextFieldOnOptionValue(){
+	$(".optionWithTextField:checked").each(function(){
+		var objId = $(this).attr("id");
+		$(this).val($(this).val() + "-" +  $("input[for='"+objId+"']").val());
+	});
 }
