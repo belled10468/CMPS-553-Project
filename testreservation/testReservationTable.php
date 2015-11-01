@@ -4,7 +4,7 @@ require_once ('./testReservationUtil.php');
 // require_login();
 
 // Need group verification
-$isStaff = verifyODSIdentity();
+$isStaff = verifyODSIdentity ();
 
 $PAGE->set_context ( get_system_context () );
 $PAGE->set_pagelayout ( 'standard' );
@@ -54,10 +54,9 @@ try {
 					break;
 			}
 		}
-		$recordset = getRecordSet($isStaff);
-		$recordArray = recordSetToArray($recordset);
+		$recordset = getRecordSet ( $isStaff );
+		$recordArray = recordSetToArray ( $recordset );
 		$formatedRecordArray = formatRecordArray ( $recordArray, $isStaff );
-		
 	} else {
 		echo "Database Configuration Error! \n";
 		echo "Cannot find required tables.";
@@ -72,9 +71,10 @@ echo $OUTPUT->header ();
 <link rel="stylesheet" type="text/css"
 	href="<?php echo $CFG->wwwroot?>/lib/jquery/ui-1.11.4/jquery-ui.min.css">
 <link rel="stylesheet" type="text/css"
-	href="<?php echo $CFG->wwwroot?>/testreservation/css/jquery.dataTables.min.css">
-<table id="testReservationRecordTable">
-	<tbody>
+	href="<?php echo $CFG->wwwroot?>/testreservation/css/tablesorter/style.css">
+	
+<table id="testReservationRecordTable" class= "tablesorter">
+	<thead>
 		<!-- Date | Subject | Start time| Student CLID | Name | Duration | Finish time | Preference| Accommodation | Ret type -->
 		<tr>
 			<th>Date</th>
@@ -89,10 +89,15 @@ echo $OUTPUT->header ();
 			<th>Ret type</th>
 			<th>Operations</th>
 		</tr>
+	</thead>
+			
+	<tbody>
+
+
 		<?php
 		foreach ( $formatedRecordArray as $k => $formatedRecord ) {
 			echo "<tr>";
-			echo "<td class = 'recordData' style = 'display: none'>".json_encode($recordArray[$k])."</td>";
+			echo "<td class = 'recordData' style = 'display: none'>" . json_encode ( $recordArray [$k] ) . "</td>";
 			foreach ( $formatedRecord as $field ) {
 				echo "<td>$field</td>";
 			}
@@ -103,16 +108,14 @@ echo $OUTPUT->header ();
 			echo "</tr>";
 		}
 		?>
-	</tbody>
-</table>
-<form id = "submitForm" method="post"></form>
+	</tbody></table>
+<form id="submitForm" method="post"></form>
 <div id="controlPanel">
 <?php if(!$isStaff){?>
 	<div class="button" id="add"
 		onclick="location.href='testReservationForm.php';">Add New Reservation</div>
 		<?php }else{?>
-	<div class="button" id="generateReport">Generate
-		Report</div>
+	<div class="button" id="generateReport">Generate Report</div>
 		<?php }?>
 </div>
 <div class="dialog" id="warningDialog">
@@ -141,7 +144,8 @@ echo $OUTPUT->header ();
 <script type="text/javascript"
 	src="<?php echo $CFG->wwwroot?>/lib/jquery/ui-1.11.4/jquery-ui.min.js"></script>
 <script type="text/javascript"
-	src="<?php echo $CFG->wwwroot?>/testreservation/js/jquery.dataTables.min.js"></script>
+	src="<?php echo $CFG->wwwroot?>/testreservation/js/jquery.tablesorter.min.js"></script>
+
 <script type="text/javascript"
 	src="<?php echo $CFG->wwwroot?>/testreservation/js/testReservationTable.js"></script>
 <script type="text/javascript">
@@ -152,10 +156,8 @@ $(".button").button();
 // $('.delete').button( "option", "icons", 'ui-icon-trash');
 $(".dialog").dialog({"autoOpen":false});
 $( "#warningDialog" ).on( "dialogclose", function( event, ui ) {$("#warningDialog p").text("");} );
-$('#testReservationRecordTable').DataTable();
-	});
-
-
+$('.tablesorter').tablesorter();
+});
 </script>
 <?php
 echo $OUTPUT->footer ();

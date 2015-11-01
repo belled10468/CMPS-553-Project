@@ -10,8 +10,30 @@ function directSQLInsertRR($postArray) {
 	$sql = "INSERT INTO ods_test_reservation_record (`register_id`, `class`, `instructors`,
 		`test_type`, `original_test_time`, `test_date`, `test_start_time`,
 		`test_duration`, `preference`, `accommodation`,
-		`return_type`, `is_valid`) VALUES (" . "'" . $USER->id . "'," . "'" . (array_key_exists ( "class", $postArray ) ? $postArray ['class'] : "") . "'," . "'" . (array_key_exists ( "instructor", $postArray ) ? $postArray ['instructor'] : "") . "'," . "'" . (array_key_exists ( "testType", $postArray ) ? $postArray ['testType'] : "") . "'," . "'" . (array_key_exists ( "originalTestDate", $postArray ) ? $postArray ['originalTestDate'] . " " : "") . (array_key_exists ( "originalTestTime", $postArray ) ? $postArray ['originalTestTime'] : "") . "'," . "'" . (array_key_exists ( "reservedTestDate", $postArray ) ? $postArray ['reservedTestDate'] : "") . "'," . "'" . (array_key_exists ( "reservedTestTime", $postArray ) ? $postArray ['reservedTestTime'] : "") . "'," . "'" . (array_key_exists ( "testLength", $postArray ) ? $postArray ['testLength'] : "") . "'," . "'" . (array_key_exists ( "preference", $postArray ) ? $postArray ['preference'] : "") . "'," . "'" . (array_key_exists ( "requiredResources", $postArray ) ? (is_array ( $postArray ['requiredResources'] ) ? implode ( ",", $postArray ['requiredResources'] ) : $postArray ['requiredResources']) : "") . "'," . "'" . (array_key_exists ( "returnType", $postArray ) ? $postArray ['returnType'] : "") . "'," . "1" . ")";
+		`return_type`, `is_valid`) VALUES (" . "'"
+				. $USER->id . "'," . "'"
+	. purifyDataStringFromArray('class', $postArray)
+	. "'," . "'" . purifyDataStringFromArray('instructor', $postArray)
+	. "'," . "'" . purifyDataStringFromArray('testType', $postArray) 
+	. "'," . "'" . purifyDataStringFromArray('originalTestDate', $postArray). " " . purifyDataStringFromArray('originalTestTime', $postArray)
+	. "'," . "'" . purifyDataStringFromArray('reservedTestDate', $postArray)
+	. "'," . "'" . purifyDataStringFromArray('reservedTestTime', $postArray)
+	. "'," . "'" . purifyDataStringFromArray('testLength', $postArray)
+	. "'," . "'" . purifyDataStringFromArray('preference', $postArray)
+	. "'," . "'" . purifyDataStringFromArray('requiredResources', $postArray)
+	. "'," . "'" . purifyDataStringFromArray('returningInstructions', $postArray) . "'," . "1" . ")";
 	$DB->execute ( $sql );
+}
+function purifyDataStringFromArray($key, $array){
+	if(array_key_exists($key, $array)){
+		if(is_array($array[$key])){
+			return implode(",", $array[$key]);
+		}else{
+			return $array[$key];
+		}
+	}else{
+		return  "";
+	}
 }
 function directSQLInsertRT($submitType, $postArray) {
 	global $DB;
@@ -113,31 +135,36 @@ function getRecordSet($isStaff, $recordId = Null) {
 	return $recordset;
 }
 function formatRecordIntoForm($record) {
-	if ($record['original_test_time'] != Null) {
-		$original_test_time = explode ( " ", $record['original_test_time'] );
-		$record['original_test_date'] = $original_test_time [0];
-		$record['original_test_time'] = $original_test_time [1];
-	}else{
-		$record['original_test_date'] = '';
+	if ($record ['original_test_time'] != Null) {
+		$original_test_time = explode ( " ", $record ['original_test_time'] );
+		$record ['original_test_date'] = $original_test_time [0];
+		$record ['original_test_time'] = $original_test_time [1];
+	} else {
+		$record ['original_test_date'] = '';
 	}
-	if ($record['accommodation'] != Null) {
-		$record['accommodation'] = valueToIndexArray ( $record['accommodation'], "," );
-	}else{
-		$record['accommodation'] = array();
+	if ($record ['accommodation'] != Null) {
+		$record ['accommodation'] = valueToIndexArray ( $record ['accommodation'], ",", ":" );
+	} else {
+		$record ['accommodation'] = array ();
 	}
-	if ($record['return_type'] != Null) {
-		$record['return_type'] = valueToIndexArray ( $record['return_type'], "," );
+	if ($record ['return_type'] != Null) {
+		$record ['return_type'] = valueToIndexArray ( $record ['return_type'], ",", ":" );
 	}
 	return $record;
 }
-function valueToIndexArray($value, $delimiter) {
+function valueToIndexArray($value, $delimiter, $textFieldSeparator = NULL) {
 	$indexArray = array ();
 	foreach ( explode ( $delimiter, $value ) as $v ) {
-		$indexArray [$v] = 'checked';
+		if ($textFieldSeparator == NULL) {
+			$indexArray [$v] = '';
+		} else if(strlen($v) > 0){
+			$vParts = explode($textFieldSeparator, $v);
+			$indexArray [$vParts[0]] = (sizeof($vParts) > 1?$vParts[1]:"");
+		}
 	}
 	return $indexArray;
 }
-function defaultValueApply($value, $type, $option = NULL,  $default = NULL) {
+function defaultValueApply($value, $type, $option = NULL, $default = NULL) {
 	global $_POST;
 	if (array_key_exists ( "submitType", $_POST )) {
 		switch ($type) {
@@ -146,14 +173,14 @@ function defaultValueApply($value, $type, $option = NULL,  $default = NULL) {
 				break;
 			case "checkbox" :
 			case "radio" :
-				if (array_key_exists($option, $value) && $value[$option] === 'checked') {
+				if (array_key_exists ( $option, $value ) && $value [$option] === 'checked') {
 					echo " checked ";
 				}
 				break;
 			default :
 				break;
 		}
-	} else if($default != NULL){
+	} else if ($default != NULL) {
 		switch ($type) {
 			case "text" :
 				echo " value='$default' ";

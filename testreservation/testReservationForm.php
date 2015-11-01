@@ -11,7 +11,7 @@ $PAGE->set_pagelayout ( 'standard' );
 $PAGE->set_title ( "Test Reservation Form" );
 $PAGE->set_heading ( "Test Reservation Form" );
 $PAGE->set_url ( $CFG->wwwroot . '/testreservation/testReservationForm.php' );
-$availableRecord;
+$availableRecord = NULL;
 if (array_key_exists ( "submitType", $_POST )) {
 	if ($_POST ['submitType'] == "update") {
 		$recordset = getRecordSet ( $isStaff, $_POST ['targetReservationId'] );
@@ -157,10 +157,10 @@ echo $OUTPUT->header ();
 					type="text" class="optionTextField"
 					for="returningInstructions-Call_for_pick_up"
 					placeholer="Phone Number"> <input type="radio"
-					id="returningInstructions-other" name="returningInstructions[]"
+					id="returningInstructions-Other" name="returningInstructions[]"
 					value="Other" class="optionWithTextField"><label
-					for="returningInstructions-other">Other</label><input type="text"
-					class="optionTextField" for="returningInstructions-other"></td>
+					for="returningInstructions-Other">Other</label><input type="text"
+					class="optionTextField" for="returningInstructions-Other"></td>
 			</tr>
 			<tr>
 				<td>Testing Instructions:</td>
@@ -182,17 +182,16 @@ echo $OUTPUT->header ();
 					name="testingInstructions[]" class="optionWithTextField"><label
 					for="testingInstructions-Calculator">Calculator</label><input type="text"
 					class="optionTextField" for="testingInstructions-Calculator"><input
-					type="checkbox" id="testingInstructions-other"
+					type="checkbox" id="testingInstructions-Other"
 					name="testingInstructions[]" class="optionWithTextField"><label
-					for="testingInstructions-other">Other</label><input type="text"
-					class="optionTextField" for="testingInstructions-other"></td>
+					for="testingInstructions-Other">Other</label><input type="text"
+					class="optionTextField" for="testingInstructions-Other"></td>
 			</tr>
 			<?php }?>
 			<tr>
 				<td><input type="hidden" name="submitType"
 					value='<?php echo (array_key_exists('submitType', $_POST)?$_POST['submitType']:'new')?>'>
-					<input type="hidden" name="targetReservationId"
-					<?php defaultValueApply($availableRecord['id'], "text")?>></td>
+					<input type="hidden" name="targetReservationId" value= '<?php if($availableRecord != NULL){ echo $availableRecord['id'];}?>'></td>
 			</tr>
 		</table>
 	</form>

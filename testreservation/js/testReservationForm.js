@@ -38,24 +38,29 @@ function validateWorkTimeShift() {
 }
 function validateSubmittedFields() {
 	var vailadationResult = true;
-	$("#testReservationForm").find("input:not(input[name='instructor'], .optionTextField), select").each(function() {
-		var value = $(this).val();
-		if (value == undefined || value == "") {
-			invalidateTarget($(this))
-			vailadationResult = false;
-		}
-	});
+	$("#testReservationForm")
+			.find(
+					"input:not(input[name='instructor'], input[type='hidden'], .optionTextField), select")
+			.each(function() {
+				var value = $(this).val();
+				if (value == undefined || value == "") {
+					invalidateTarget($(this))
+					vailadationResult = false;
+				}
+			});
 	if ($(".timeLength").val() == 0) {
 		invalidateTarget($(".timeLength"))
 		vailadationResult = false;
 	}
-	$(".optionWithTextField:checked").each(function(){
-		var objId = $(this).attr("id");
-		if($("input[for='"+objId+"']").val() == undefined || $("input[for='"+objId+"']").val() == ""){
-			invalidateTarget($("input[for='"+objId+"']"))
-			vailadationResult = false;
-		}
-	});
+	$(".optionWithTextField:checked").each(
+			function() {
+				var objId = $(this).attr("id");
+				if ($("input[for='" + objId + "']").val() == undefined
+						|| $("input[for='" + objId + "']").val() == "") {
+					invalidateTarget($("input[for='" + objId + "']"))
+					vailadationResult = false;
+				}
+			});
 	return vailadationResult;
 }
 
@@ -84,7 +89,9 @@ function validTimePeriod(time, lowerBound, upperBound, testLength) {
 			$("input[name='testLength']").val(undefined);
 			return false;
 		}
-		console.log("timeInMinutes + testLength: " + timeInMinutes + testLength);
+		console
+				.log("timeInMinutes + testLength: " + timeInMinutes
+						+ testLength);
 		if (testLength != undefined && testLength > 0
 				&& timeInMinutes + testLength > upperBound) {
 			$("#workTimeDialog").dialog("open");
@@ -94,32 +101,45 @@ function validTimePeriod(time, lowerBound, upperBound, testLength) {
 	}
 }
 
-function setPreviousRecord(oldRecord){
+function setPreviousRecord(oldRecord) {
 	console.log(oldRecord);
-	//if(Object.keys(oldRecord).length > 0){
-	console.log(oldRecord['class']);
-	$("select[name='class']").val(oldRecord['class']);
-	$("input[name='instructor']").val(oldRecord['instructors']);
-	$("input[name='originalTestDate']").val(oldRecord['original_test_date']);
-	$("input[name='originalTestTime']").val(oldRecord['original_test_time']);
-	$("#testType-"+oldRecord['test_type'].replace(" ", "_")).prop("checked", true);
-	$("input[name='testLength']").val(oldRecord['test_duration']);
-	$("input[name='reservedTestDate']").val(oldRecord['test_date']);
-	$("input[name='reservedTestTime']").val(oldRecord['test_start_time']);
-	$.each(oldRecord['accommodation'], function(k, v){
-		$("#requiredResources-"+k.replace(" ", "_")).prop("checked", true);
-	});
-	$.each(oldRecord['return_type'], function(k, v){
-		$("#returningInstructions-"+k.replace(" ", "_")).prop("checked", true);
-	});
-//	$.each(oldRecord['preference'], function(k, v){
-//		$("#testingInstructions-"+k.replace(" ", "_")).prop("checked", true);
-//	});
+	if (oldRecord != undefined && Object.keys(oldRecord).length > 0) {
+		$("select[name='class']").val(oldRecord['class']);
+		$("input[name='instructor']").val(oldRecord['instructors']);
+		$("input[name='originalTestDate']")
+				.val(oldRecord['original_test_date']);
+		$("input[name='originalTestTime']")
+				.val(oldRecord['original_test_time']);
+		$("#testType-" + oldRecord['test_type'].replace(" ", "_")).prop(
+				"checked", true);
+		$("input[name='testLength']").val(oldRecord['test_duration']);
+		$("input[name='reservedTestDate']").val(oldRecord['test_date']);
+		$("input[name='reservedTestTime']").val(oldRecord['test_start_time']);
+		$.each(oldRecord['accommodation'], function(k, v) {
+			checkSelection("requiredResources", k, v);
+		});
+		$.each(oldRecord['return_type'], function(k, v) {
+			checkSelection("returningInstructions", k, v);
+		});
+		// $.each(oldRecord['preference'], function(k, v){
+		// $("#testingInstructions-"+k.replace(" ", "_")).prop("checked", true);
+		// });
+	}
 }
 
-function appendTextFieldOnOptionValue(){
-	$(".optionWithTextField:checked").each(function(){
-		var objId = $(this).attr("id");
-		$(this).val($(this).val() + "-" +  $("input[for='"+objId+"']").val());
-	});
+function checkSelection(name, selectId, value) {
+	$("#" + name + "-" + selectId.replace(" ", "_")).prop("checked", true);
+	if (value.length > 0) {
+		$("input[for='" + name + "-" + selectId.replace(" ", "_") + "']").val(value);
+	}
+}
+
+function appendTextFieldOnOptionValue() {
+	$(".optionWithTextField:checked").each(
+			function() {
+				var objId = $(this).attr("id");
+				$(this).val(
+						$(this).val() + ":"
+								+ $("input[for='" + objId + "']").val());
+			});
 }
