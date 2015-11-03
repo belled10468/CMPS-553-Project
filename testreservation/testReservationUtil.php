@@ -1,45 +1,114 @@
 <?php
-function verifyODSIdentity() {
-	return true;
+function verifyODSIdentity($testReservationInfo) {
+	global $USER;
+	global $DB;
+	$identity = array();
+	$userGroups = $testReservationInfo->userGroups;
+	$tableRecords = $DB->get_records_sql ( "SELECT g.`name` FROM `mdl_groups_members` as m
+			 JOIN `mdl_groups` as g ON g.`id` = m.`groupid` 
+			WHERE m.`userid` = ? AND (g.`name` = ? OR g.`name` = ?)" , array($USER->id, $userGroups['studentGroup'], $userGroups['staffGroup']));
+	foreach($tableRecords as $tableRecord){
+		if($tableRecord->name == $userGroups['studentGroup']){
+			array_push($identity, "student");
+		}else if($tableRecord->name == $userGroups['staffGroup']){
+			array_push($identity, "staff");
+		}
+	}
+	return $identity;
+}
+function verifyBasicDatabaseTableSetup() {
+	global $DB;
+	$requiredTables = array (
+			"ods_test_reservation_record",
+			"ods_test_reservation_transaction" 
+	);
+	// Check table exist or not
+	$tableRecord = $DB->get_records_sql ( "SHOW TABLES LIKE 'ods_test_reservation_%'" );
+	$obtainTables = array_keys ( $tableRecord );
+	foreach ( $requiredTables as $requiredTable ) {
+		if (! in_array ( $requiredTable, $obtainTables )) {
+			die ( "Database Configuration Error! \n" . "Cannot find required tables." );
+		}
+	}
 }
 function directSQLInsertRR($postArray) {
 	global $DB;
-	global $USER;
-	
+	$params = array ();
+	array_push ( $params, purifyDataStringFromArray ( 'userId', $postArray ) );
+	array_push ( $params, purifyDataStringFromArray ( 'class', $postArray ) );
+	array_push ( $params, purifyDataStringFromArray ( 'instructor', $postArray ) );
+	array_push ( $params, purifyDataStringFromArray ( 'testType', $postArray ) );
+	array_push ( $params, purifyDataStringFromArray ( 'originalTestDate', $postArray ) . " " . purifyDataStringFromArray ( 'originalTestTime', $postArray ) );
+	array_push ( $params, purifyDataStringFromArray ( 'reservedTestDate', $postArray ) );
+	array_push ( $params, purifyDataStringFromArray ( 'reservedTestTime', $postArray ) );
+	array_push ( $params, purifyDataStringFromArray ( 'testLength', $postArray ) );
+	array_push ( $params, purifyDataStringFromArray ( 'preference', $postArray ) );
+	array_push ( $params, purifyDataStringFromArray ( 'requiredResources', $postArray ) );
+	array_push ( $params, purifyDataStringFromArray ( 'returningInstructions', $postArray ) );
+	array_push ( $params, 1 );
 	// Add myql filter
 	$sql = "INSERT INTO ods_test_reservation_record (`register_id`, `class`, `instructors`,
 		`test_type`, `original_test_time`, `test_date`, `test_start_time`,
 		`test_duration`, `preference`, `accommodation`,
-		`return_type`, `is_valid`) VALUES (" . "'"
-				. $USER->id . "'," . "'"
-	. purifyDataStringFromArray('class', $postArray)
-	. "'," . "'" . purifyDataStringFromArray('instructor', $postArray)
-	. "'," . "'" . purifyDataStringFromArray('testType', $postArray) 
-	. "'," . "'" . purifyDataStringFromArray('originalTestDate', $postArray). " " . purifyDataStringFromArray('originalTestTime', $postArray)
-	. "'," . "'" . purifyDataStringFromArray('reservedTestDate', $postArray)
-	. "'," . "'" . purifyDataStringFromArray('reservedTestTime', $postArray)
-	. "'," . "'" . purifyDataStringFromArray('testLength', $postArray)
-	. "'," . "'" . purifyDataStringFromArray('preference', $postArray)
-	. "'," . "'" . purifyDataStringFromArray('requiredResources', $postArray)
-	. "'," . "'" . purifyDataStringFromArray('returningInstructions', $postArray) . "'," . "1" . ")";
-	$DB->execute ( $sql );
+		`return_type`, `is_valid`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+	$DB->execute ( $sql, $params );
 }
-function purifyDataStringFromArray($key, $array){
-	if(array_key_exists($key, $array)){
-		if(is_array($array[$key])){
-			return implode(",", $array[$key]);
-		}else{
-			return $array[$key];
+function purifyDataStringFromArray($key, $array) {
+	if (array_key_exists ( $key, $array )) {
+		if (is_array ( $array [$key] )) {
+			return implode ( ",", $array [$key] );
+		} else {
+			return $array [$key];
 		}
-	}else{
-		return  "";
+	} else {
+		return "";
 	}
+}
+function obtainCourseTeacherMap($userId, $selectedCourses) {
+	global $DB;
+	
+	$courseTeacherMap = array ();
+	
+	// Allow users to modify the instructor fields?
+	
+	try {
+		foreach ( $selectedCourses as $k => $selectedCourse ) {
+			$courseId = $selectedCourse->id;
+			$courseTeacherMap [$courseId] = array ();
+			$teachers = $DB->get_records_sql ( "SELECT u.lastname, u.middlename, u.firstname, u.id
+				FROM mdl_course c
+				JOIN mdl_context ct ON c.id = ct.instanceid
+				JOIN mdl_role_assignments ra ON ra.contextid = ct.id
+				JOIN mdl_user u ON u.id = ra.userid
+				JOIN mdl_role r ON r.id = ra.roleid
+				WHERE r.id = 3 and c.id = ?", array (
+					$courseId 
+			) );
+			foreach ( $teachers as $k => $teacher ) {
+				$teacherName = $teacher->firstname . (strlen ( $teacher->middlename ) > 0 ? " " . $teacher->middlename . " " : " ") . $teacher->lastname;
+				$courseTeacherMap [$courseId] [$teacher->id] = $teacherName;
+			}
+		}
+	} catch ( Exception $e ) {
+	}
+}
+function invalidateTargetReservation($reservationId) {
+	global $DB;
+	$sql = "UPDATE `ods_test_reservation_record` SET is_valid = 0 WHERE id = ?";
+	$DB->execute ( $sql, array (
+			$reservationId 
+	) );
 }
 function directSQLInsertRT($submitType, $postArray) {
 	global $DB;
 	global $USER;
-	$sql = "INSERT INTO ods_test_reservation_transaction (`action`, `executor`, `data`) VALUES (" . "'" . $submitType . "'," . "'" . $USER->id . "'," . "'" . json_encode ( $postArray ) . "'" . ")";
-	$DB->execute ( $sql );
+	$params = array (
+			$submitType,
+			$USER->id,
+			json_encode ( $postArray ) 
+	);
+	$sql = "INSERT INTO ods_test_reservation_transaction (`action`, `executor`, `data`) VALUES (?, ?, ?)";
+	$DB->execute ( $sql, $params );
 }
 function createReservationTransactionObj($submitType, $postArray) {
 	global $USER;
@@ -63,7 +132,7 @@ function createReservationRecordObj($postArray) {
 	return $record;
 }
 // Date | Subject | Start time| Student CLID | Name | Duration | Finish time | Preference| Accommodation | Ret type
-function formatRecordArray($recordArray, $staffView = true) { // Flexible?
+function formatRecordArray($recordArray, $identity) { // Flexible?
 	global $USER;
 	$formatedRecordArray = array ();
 	foreach ( $recordArray as $k => $record ) {
@@ -75,7 +144,7 @@ function formatRecordArray($recordArray, $staffView = true) { // Flexible?
 		$formatedRecordArray [$recordId] ['Subject'] = $record->coursename;
 		$formatedRecordArray [$recordId] ['Start time'] = $record->test_start_time;
 		// Current User Identify
-		if ($staffView) {
+		if (in_array("staff", $identity)) {
 			$formatedRecordArray [$recordId] ['Student CLID'] = $record->username;
 			$formatedRecordArray [$recordId] ['Name'] = $record->firstname . " " . (strlen ( $record->middlename ) > 0 ? $record->middlename . " " : "") . $record->lastname;
 		}
@@ -107,10 +176,11 @@ function getTestFinishTime($startTime, $testLength) {
 	$testLengthMin = intval ( $testLength );
 	return sprintf ( '%02d:%02d', ($hours + intval ( $testLengthMin / 60 )), ($mins + $testLengthMin % 60) );
 }
-function getRecordSet($isStaff, $recordId = Null) {
+function getRecordSet($identity, $recordId = Null) {
 	global $USER;
 	global $DB;
-	if ($isStaff) {
+	$params = array ();
+	if (in_array("staff", $identity)) {
 		$sql = "SELECT t.`id`, t.`register_id`,
 		u.`username`, u.`firstname`, u.`middlename`, u.`lastname`,
 		t.`class`, c.`fullname` as coursename, t.`instructors`,
@@ -119,19 +189,23 @@ function getRecordSet($isStaff, $recordId = Null) {
 		t.`return_type`, t.`created_date`
 		FROM `ods_test_reservation_record` t " . "JOIN mdl_user u ON u.id = t.`register_id`" . "JOIN mdl_course c ON c.id = t.`class`" . "WHERE t.is_valid = 1 ";
 	} else {
+		$params = array (
+				$USER->id 
+		);
 		$sql = "SELECT t.`id`, t.`register_id`,
 		t.`class`, c.`fullname` as coursename, t.`instructors`,
 		t.`test_type`,  t.`original_test_time`, t.`test_date`, t.`test_start_time`,
 		t.`test_duration`, t.`preference`, t.`accommodation`,
 		t.`return_type`, t.`created_date`
-		FROM `ods_test_reservation_record` t " . "JOIN mdl_course c ON c.id = t.`class`" . "WHERE t.is_valid = 1 AND t.register_id = " . $USER->id;
+		FROM `ods_test_reservation_record` t " . "JOIN mdl_course c ON c.id = t.`class`" . "WHERE t.is_valid = 1 AND t.register_id = ?";
 	}
 	if ($recordId != Null) {
-		$sql .= " AND t.`id` = $recordId ";
+		array_push ( $params, $recordId );
+		$sql .= " AND t.`id` = ? ";
 	}
 	
 	$sql .= " ORDER BY t.`created_date`";
-	$recordset = $DB->get_recordset_sql ( $sql );
+	$recordset = $DB->get_recordset_sql ( $sql , $params);
 	return $recordset;
 }
 function formatRecordIntoForm($record) {
@@ -157,9 +231,9 @@ function valueToIndexArray($value, $delimiter, $textFieldSeparator = NULL) {
 	foreach ( explode ( $delimiter, $value ) as $v ) {
 		if ($textFieldSeparator == NULL) {
 			$indexArray [$v] = '';
-		} else if(strlen($v) > 0){
-			$vParts = explode($textFieldSeparator, $v);
-			$indexArray [$vParts[0]] = (sizeof($vParts) > 1?$vParts[1]:"");
+		} else if (strlen ( $v ) > 0) {
+			$vParts = explode ( $textFieldSeparator, $v );
+			$indexArray [$vParts [0]] = (sizeof ( $vParts ) > 1 ? $vParts [1] : "");
 		}
 	}
 	return $indexArray;

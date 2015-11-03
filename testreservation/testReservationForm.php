@@ -1,10 +1,11 @@
 <?php
 require_once ('../config.php');
 require_once ('./testReservationUtil.php');
-
+require_once ('./resources/TestReservationInfo.php');
 // require_login();
 // Need group verification
-$isStaff = verifyODSIdentity ();
+$testReservationInfo = TestReservationInfo::Instance();
+$identity = verifyODSIdentity ($testReservationInfo);
 
 $PAGE->set_context ( get_system_context () );
 $PAGE->set_pagelayout ( 'standard' );
@@ -14,7 +15,7 @@ $PAGE->set_url ( $CFG->wwwroot . '/testreservation/testReservationForm.php' );
 $availableRecord = NULL;
 if (array_key_exists ( "submitType", $_POST )) {
 	if ($_POST ['submitType'] == "update") {
-		$recordset = getRecordSet ( $isStaff, $_POST ['targetReservationId'] );
+		$recordset = getRecordSet ( $identity, $_POST ['targetReservationId'] );
 		
 		if ($recordset->valid ()) {
 			
@@ -29,36 +30,16 @@ if (array_key_exists ( "submitType", $_POST )) {
 	}
 }
 // get User Id
-if ($isStaff) {
+if (in_array("staff", $identity) || (array_key_exists ( "submitType", $_POST ) && $_POST ['submitType'] != "new")) {
 	// register_id not null
 	$userId = $availableRecord ['register_id'];
 } else {
 	$userId = $USER->id;
 }
+
 $selectedCourses = enrol_get_all_users_courses ( $userId );
+$courseTeacherMap = obtainCourseTeacherMap($userId, $selectedCourses);
 
-$courseTeacherMap = array ();
-
-// Allow users to modify the instructor fields?
-global $DB;
-try {
-	foreach ( $selectedCourses as $k => $selectedCourse ) {
-		$courseId = $selectedCourse->id;
-		$courseTeacherMap [$courseId] = array ();
-		$teachers = $DB->get_records_sql ( "SELECT u.lastname, u.middlename, u.firstname, u.id
-				FROM mdl_course c
-				JOIN mdl_context ct ON c.id = ct.instanceid
-				JOIN mdl_role_assignments ra ON ra.contextid = ct.id
-				JOIN mdl_user u ON u.id = ra.userid
-				JOIN mdl_role r ON r.id = ra.roleid
-				WHERE r.id = 3 and c.id = $courseId" );
-		foreach ( $teachers as $k => $teacher ) {
-			$teacherName = $teacher->firstname . (strlen ( $teacher->middlename ) > 0 ? " " . $teacher->middlename . " " : " ") . $teacher->lastname;
-			$courseTeacherMap [$courseId] [$teacher->id] = $teacherName;
-		}
-	}
-} catch ( Exception $e ) {
-}
 $courseTeacherMapJson = json_encode ( $courseTeacherMap );
 echo $OUTPUT->header ();
 ?>
@@ -71,7 +52,7 @@ echo $OUTPUT->header ();
 	<form id="testReservationForm" action="testReservationTable.php"
 		method="post">
 		<table>
-		<?php if($isStaff){?>
+		<?php if(in_array("staff", $identity)){?>
 		<tr>
 				<td>Student Name:</td>
 				<td><b><?php echo $availableRecord['username']?></b></td>
@@ -139,7 +120,7 @@ echo $OUTPUT->header ();
 					name="requiredResources[]" value="Private Room"><label
 					for="requiredResources-Private_Room">Private Room</label></td>
 			</tr>
-			<?php if($isStaff){?>
+			<?php if(in_array("staff", $identity)){?>
 			<tr>
 				<td>Returning Instructions:</td>
 				<td><input type="radio"
@@ -192,6 +173,8 @@ echo $OUTPUT->header ();
 				<td><input type="hidden" name="submitType"
 					value='<?php echo (array_key_exists('submitType', $_POST)?$_POST['submitType']:'new')?>'>
 					<input type="hidden" name="targetReservationId" value= '<?php if($availableRecord != NULL){ echo $availableRecord['id'];}?>'></td>
+					<input type="hidden" name="userId" value= '<?php if($userId != NULL){ echo $userId;}?>'></td>
+	
 			</tr>
 		</table>
 	</form>

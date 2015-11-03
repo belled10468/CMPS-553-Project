@@ -1,10 +1,12 @@
 <?php
 require_once ('../config.php');
 require_once ('./testReservationUtil.php');
+require_once ('./resources/TestReservationInfo.php');
 // require_login();
 
 // Need group verification
-$isStaff = verifyODSIdentity ();
+$testReservationInfo = TestReservationInfo::Instance();
+$identity = verifyODSIdentity ($testReservationInfo);
 
 $PAGE->set_context ( get_system_context () );
 $PAGE->set_pagelayout ( 'standard' );
@@ -13,13 +15,9 @@ $PAGE->set_heading ( "Test Reservation Table" );
 $PAGE->set_url ( $CFG->wwwroot . '/testreservation/testReservationTable.php' );
 try {
 	$transaction = $DB->start_delegated_transaction ();
-	$testReservationRecordTableName = "ods_test_reservation_record";
-	$testReservationTransactionRecordTableName = "ods_test_reservation_transaction";
-	// Check table exist or not
-	$tableRecord = $DB->get_records_sql ( "SHOW TABLES LIKE 'ods_test_reservation_%'" );
-	$obtainTables = array_keys ( $tableRecord );
 	
-	if (in_array ( $testReservationRecordTableName, $obtainTables ) && in_array ( $testReservationTransactionRecordTableName, $obtainTables )) {
+	verifyBasicDatabaseTableSetup();
+	
 		if (array_key_exists ( "submitType", $_POST )) {
 			$submitType = $_POST ['submitType'];
 			
@@ -34,8 +32,7 @@ try {
 					break;
 				case "update" :
 					$previousReservationId = $_POST ['targetReservationId'];
-					$sql = "UPDATE `$testReservationRecordTableName` SET is_valid = 0 WHERE id = $previousReservationId";
-					$DB->execute ( $sql );
+					invalidateTargetReservation($previousReservationId);
 					directSQLInsertRR ( $_POST );
 					directSQLInsertRT ( $submitType, $_POST );
 					// $record = createReservationRecordObj ( $_POST );
@@ -45,8 +42,7 @@ try {
 					break;
 				case "delete" :
 					$deletedReservationId = $_POST ['targetReservationId'];
-					$sql = "UPDATE `$testReservationRecordTableName` SET `is_valid` = 0 WHERE id = $deletedReservationId";
-					$DB->execute ( $sql );
+					invalidateTargetReservation($deletedReservationId);
 					directSQLInsertRT ( $submitType, $_POST );
 					// $record = createReservationRecordObj ( $_POST );
 					// $lastinsertid = $DB->insert_record ( $testReservationRecordTableName, $record, false );
@@ -54,13 +50,12 @@ try {
 					break;
 			}
 		}
-		$recordset = getRecordSet ( $isStaff );
+		$recordset = getRecordSet ( $identity );
+
 		$recordArray = recordSetToArray ( $recordset );
-		$formatedRecordArray = formatRecordArray ( $recordArray, $isStaff );
-	} else {
-		echo "Database Configuration Error! \n";
-		echo "Cannot find required tables.";
-	}
+		
+		$formatedRecordArray = formatRecordArray ( $recordArray, $identity );
+	
 	$transaction->allow_commit ();
 } catch ( Exception $e ) {
 	$transaction->rollback ( $e );
@@ -80,7 +75,7 @@ echo $OUTPUT->header ();
 			<th>Date</th>
 			<th>Subject</th>
 			<th>Start time</th>
-			<?php if($isStaff){?><th>Student CLID</th>
+			<?php if(in_array("staff", $identity)){?><th>Student CLID</th>
 			<th>Name</th><?php }?>
 			<th>Duration</th>
 			<th>Finish time</th>
@@ -111,11 +106,11 @@ echo $OUTPUT->header ();
 	</tbody></table>
 <form id="submitForm" method="post"></form>
 <div id="controlPanel">
-<?php if(!$isStaff){?>
+<?php if(in_array("student", $identity)){?>
 	<div class="button" id="add"
 		onclick="location.href='testReservationForm.php';">Add New Reservation</div>
 		<?php }else{?>
-	<div class="button" id="generateReport">Generate Report</div>
+	<div class="button" id="generateReport" onclick="$('#generateReportDialog').dialog('open')">Generate Report</div>
 		<?php }?>
 </div>
 <div class="dialog" id="warningDialog">
@@ -139,6 +134,42 @@ echo $OUTPUT->header ();
 		</tr>
 	</table>
 </div>
+<div id="generateReportDialog" class="dialog" title="Generate Report">
+	<form id="testReservationReportForm" action="testReservationReport.php"
+		method="post" target="_blank">
+		<table>
+			<tr>
+				<td colspan="3">
+					<p>Please select the data you want to examine.</p>
+				</td>
+			</tr>
+			<tr>
+				<td colspan="5">
+					<input type="checkbox" id="seletedFields1" name="seletedFields[]" value="Date" checked><label for="seletedFields1">Date</label>
+					<input type="checkbox" id="seletedFields2" name="seletedFields[]" value="Subject" checked><label for="seletedFields2">Subject</label>
+					<input type="checkbox" id="seletedFields3" name="seletedFields[]" value="Start time" checked><label for="seletedFields3">Start time</label>
+					<input type="checkbox" id="seletedFields4" name="seletedFields[]" value="Student CLID" checked><label for="seletedFields4">Student CLID</label>
+<!-- 					<input type="checkbox" id="seletedFields5" name="seletedFields[]" value="Original Test Time"><label for="seletedFields5">Original Test Time</label> -->
+					<input type="checkbox" id="seletedFields6" name="seletedFields[]" value="Name" checked><label for="seletedFields6">Name</label>
+					<input type="checkbox" id="seletedFields7" name="seletedFields[]" value="Duration" checked><label for="seletedFields7">Duration</label>
+					<input type="checkbox" id="seletedFields8" name="seletedFields[]" value="Finish time" checked><label for="seletedFields8">Finish time</label>
+					<input type="checkbox" id="seletedFields9" name="seletedFields[]" value="Preference" checked><label for="seletedFields9">Preference</label>
+					<input type="checkbox" id="seletedFields10" name="seletedFields[]" value="Accommodation" checked><label for="seletedFields10">Accommodation</label>
+					<input type="checkbox" id="seletedFields11" name="seletedFields[]" value="Ret type" checked><label for="seletedFields11">Ret type</label>
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<div class="button horizontalCenter" id="confirmGenerateReport" onclick="$('#testReservationReportForm').submit();$('#generateReportDialog').dialog('close');">Generate</div>
+				</td>
+				<td>
+					<div class="button horizontalCenter"
+						onclick="$('#generateReportDialog').dialog('close');">cancel</div>
+				</td>
+			</tr>
+		</table>
+	</form>
+</div>
 <script type="text/javascript"
 	src="<?php echo $CFG->wwwroot?>/lib/jquery/jquery-1.11.2.min.js"></script>
 <script type="text/javascript"
@@ -158,6 +189,7 @@ $(".dialog").dialog({"autoOpen":false});
 $( "#warningDialog" ).on( "dialogclose", function( event, ui ) {$("#warningDialog p").text("");} );
 $('.tablesorter').tablesorter();
 });
+
 </script>
 <?php
 echo $OUTPUT->footer ();
