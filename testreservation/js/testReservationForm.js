@@ -118,19 +118,20 @@ function setPreviousRecord(oldRecord) {
 		$.each(oldRecord['accommodation'], function(k, v) {
 			checkSelection("requiredResources", k, v);
 		});
+		$.each(oldRecord['testing_instructions'], function(k, v) {
+			checkSelection("testingInstructions", k, v);
+		});
 		$.each(oldRecord['return_type'], function(k, v) {
 			checkSelection("returningInstructions", k, v);
 		});
-		// $.each(oldRecord['preference'], function(k, v){
-		// $("#testingInstructions-"+k.replace(" ", "_")).prop("checked", true);
-		// });
 	}
 }
 
 function checkSelection(name, selectId, value) {
 	$("#" + name + "-" + selectId.replace(" ", "_")).prop("checked", true);
 	if (value.length > 0) {
-		$("input[for='" + name + "-" + selectId.replace(" ", "_") + "']").val(value);
+		//Refill the fields and recover the encoded content
+		$("input[for='" + name + "-" + selectId.replace(" ", "_") + "']").val(decodeURI(value));
 	}
 }
 

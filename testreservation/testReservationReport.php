@@ -24,11 +24,13 @@ $formatedRecordArray = formatRecordArray ( $recordArray, $identity );
 <html>
 <head>
 <title>Test Reservation Report</title>
+<link rel="stylesheet" type="text/css"
+	href="<?php echo $CFG->wwwroot?>/testreservation/css/testReservationReport.css">
+
 </head>
 <body>
 	<table id="testReservationRecordTable">
 		<thead>
-			<!-- Date | Subject | Start time| Student CLID | Name | Duration | Finish time | Preference| Accommodation | Ret type -->
 			<tr>
 				<?php
 				foreach ( $seletedFields as $k => $seletedField ) {
@@ -45,16 +47,11 @@ $formatedRecordArray = formatRecordArray ( $recordArray, $identity );
 		foreach ( $formatedRecordArray as $k => $formatedRecord ) {
 			
 			echo "<tr>";
-			echo "<td class = 'recordData' style = 'display: none'>" . json_encode ( $recordArray [$k] ) . "</td>";
 			foreach ( $formatedRecord as $fieldName => $field ) {
 				if (in_array ( $fieldName, $seletedFields )) {
 					echo "<td>$field</td>";
 				}
 			}
-			echo "<td>";
-			echo "<div class = 'edit button' onclick='editRecord($k, $(this));'><span class='ui-icon ui-icon-pencil'></div>";
-			echo "<div class = 'delete button' onclick='deleteRecord($k);'><span class='ui-icon ui-icon-trash'></span></div>";
-			echo "</td>";
 			echo "</tr>";
 		}
 		?>

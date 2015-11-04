@@ -1,4 +1,6 @@
 <?php
+
+//
 function verifyODSIdentity($testReservationInfo) {
 	global $USER;
 	global $DB;
@@ -42,14 +44,14 @@ function directSQLInsertRR($postArray) {
 	array_push ( $params, purifyDataStringFromArray ( 'reservedTestDate', $postArray ) );
 	array_push ( $params, purifyDataStringFromArray ( 'reservedTestTime', $postArray ) );
 	array_push ( $params, purifyDataStringFromArray ( 'testLength', $postArray ) );
-	array_push ( $params, purifyDataStringFromArray ( 'preference', $postArray ) );
+	array_push ( $params, purifyDataStringFromArray ( 'testingInstructions', $postArray ) );
 	array_push ( $params, purifyDataStringFromArray ( 'requiredResources', $postArray ) );
 	array_push ( $params, purifyDataStringFromArray ( 'returningInstructions', $postArray ) );
 	array_push ( $params, 1 );
 	// Add myql filter
 	$sql = "INSERT INTO ods_test_reservation_record (`register_id`, `class`, `instructors`,
 		`test_type`, `original_test_time`, `test_date`, `test_start_time`,
-		`test_duration`, `preference`, `accommodation`,
+		`test_duration`, `testing_instructions`, `accommodation`,
 		`return_type`, `is_valid`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 	$DB->execute ( $sql, $params );
 }
@@ -153,8 +155,7 @@ function formatRecordArray($recordArray, $identity) { // Flexible?
 		
 		$formatedRecordArray [$recordId] ['Finish time'] = getTestFinishTime ( $record->test_start_time, $record->test_duration );
 		
-		$formatedRecordArray [$recordId] ['Preference'] = $record->preference;
-		$formatedRecordArray [$recordId] ['Accommodation'] = (is_array ( $record->accommodation ) ? implode ( ",", $record->accommodation ) : $record->accommodation);
+		$formatedRecordArray [$recordId] ['Accommodation'] = $record->accommodation.(strlen($record->testing_instructions) > 0?",".$record->testing_instructions:"");
 		$formatedRecordArray [$recordId] ['Ret type'] = $record->return_type;
 	}
 	return $formatedRecordArray;
@@ -185,7 +186,7 @@ function getRecordSet($identity, $recordId = Null) {
 		u.`username`, u.`firstname`, u.`middlename`, u.`lastname`,
 		t.`class`, c.`fullname` as coursename, t.`instructors`,
 		t.`test_type`,  t.`original_test_time`, t.`test_date`, t.`test_start_time`,
-		t.`test_duration`, t.`preference`, t.`accommodation`,
+		t.`test_duration`, t.`testing_instructions`, t.`accommodation`,
 		t.`return_type`, t.`created_date`
 		FROM `ods_test_reservation_record` t " . "JOIN mdl_user u ON u.id = t.`register_id`" . "JOIN mdl_course c ON c.id = t.`class`" . "WHERE t.is_valid = 1 ";
 	} else {
@@ -195,7 +196,7 @@ function getRecordSet($identity, $recordId = Null) {
 		$sql = "SELECT t.`id`, t.`register_id`,
 		t.`class`, c.`fullname` as coursename, t.`instructors`,
 		t.`test_type`,  t.`original_test_time`, t.`test_date`, t.`test_start_time`,
-		t.`test_duration`, t.`preference`, t.`accommodation`,
+		t.`test_duration`, t.`testing_instructions`, t.`accommodation`,
 		t.`return_type`, t.`created_date`
 		FROM `ods_test_reservation_record` t " . "JOIN mdl_course c ON c.id = t.`class`" . "WHERE t.is_valid = 1 AND t.register_id = ?";
 	}
@@ -220,6 +221,11 @@ function formatRecordIntoForm($record) {
 		$record ['accommodation'] = valueToIndexArray ( $record ['accommodation'], ",", ":" );
 	} else {
 		$record ['accommodation'] = array ();
+	}
+	if ($record ['testing_instructions'] != Null) {
+		$record ['testing_instructions'] = valueToIndexArray ( $record ['testing_instructions'], ",", ":" );
+	} else {
+		$record ['testing_instructions'] = array ();
 	}
 	if ($record ['return_type'] != Null) {
 		$record ['return_type'] = valueToIndexArray ( $record ['return_type'], ",", ":" );

@@ -79,7 +79,7 @@ echo $OUTPUT->header ();
 			<th>Name</th><?php }?>
 			<th>Duration</th>
 			<th>Finish time</th>
-			<th>Preference</th>
+<!-- 			<th>Preference</th> -->
 			<th>Accommodation</th>
 			<th>Ret type</th>
 			<th>Operations</th>
@@ -153,7 +153,7 @@ echo $OUTPUT->header ();
 					<input type="checkbox" id="seletedFields6" name="seletedFields[]" value="Name" checked><label for="seletedFields6">Name</label>
 					<input type="checkbox" id="seletedFields7" name="seletedFields[]" value="Duration" checked><label for="seletedFields7">Duration</label>
 					<input type="checkbox" id="seletedFields8" name="seletedFields[]" value="Finish time" checked><label for="seletedFields8">Finish time</label>
-					<input type="checkbox" id="seletedFields9" name="seletedFields[]" value="Preference" checked><label for="seletedFields9">Preference</label>
+<!-- 					<input type="checkbox" id="seletedFields9" name="seletedFields[]" value="Preference" checked><label for="seletedFields9">Preference</label> -->
 					<input type="checkbox" id="seletedFields10" name="seletedFields[]" value="Accommodation" checked><label for="seletedFields10">Accommodation</label>
 					<input type="checkbox" id="seletedFields11" name="seletedFields[]" value="Ret type" checked><label for="seletedFields11">Ret type</label>
 				</td>

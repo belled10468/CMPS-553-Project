@@ -29,8 +29,8 @@ if (array_key_exists ( "submitType", $_POST )) {
 		}
 	}
 }
-// get User Id
-if (in_array("staff", $identity) || (array_key_exists ( "submitType", $_POST ) && $_POST ['submitType'] != "new")) {
+// When user is staff and doing update
+if (in_array("staff", $identity) && (array_key_exists ( "submitType", $_POST ) && $_POST ['submitType'] == "update")) {
 	// register_id not null
 	$userId = $availableRecord ['register_id'];
 } else {
@@ -151,15 +151,15 @@ echo $OUTPUT->header ();
 					type="checkbox" id="testingInstructions-Statistical_Tables"
 					name="testingInstructions[]" value="Statistical Tables"><label
 					for="testingInstructions-Statistical_Tables">Statistical Tables</label>
-					<input type="checkbox" id="testingInstructions-Open_Book"
+					<input type="checkbox" id="testingInstructions-Open_Book" value="Open Book"
 					name="testingInstructions[]" class="optionWithTextField"><label
 					for="testingInstructions-Open_Book">Open Book</label><input
 					type="text" class="optionTextField"
 					for="testingInstructions-Open_Book"><input type="checkbox"
-					id="testingInstructions-Open_Notes" name="testingInstructions[]"
+					id="testingInstructions-Open_Notes" name="testingInstructions[]" value="Open Notes"
 					class="optionWithTextField"><label for="testingInstructions-Open_Notes">Open Notes</label><input
 					type="text" class="optionTextField" for="testingInstructions-Open_Notes"><input
-					type="checkbox" id="testingInstructions-Calculator"
+					type="checkbox" id="testingInstructions-Calculator" value="Calculator"
 					name="testingInstructions[]" class="optionWithTextField"><label
 					for="testingInstructions-Calculator">Calculator</label><input type="text"
 					class="optionTextField" for="testingInstructions-Calculator"><input
@@ -287,7 +287,8 @@ $(document).ready(function(){
 
 			var teacherNamesString = "";
 			$.each(courseTeacherMap[courseId], function(key, value){
-				teacherNamesString += (teacherNamesString.length > 0? ", ":"")+value;
+				//Escape special character
+				teacherNamesString += (teacherNamesString.length > 0? ", ":"")+encodeURI(value);
 			});
 			$("input[name='instructor']").val(teacherNamesString);
 		}
