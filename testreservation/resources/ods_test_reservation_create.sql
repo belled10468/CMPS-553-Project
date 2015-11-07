@@ -9,7 +9,7 @@ CREATE TABLE `ods_test_reservation_record` (
   `test_date` char(10) NOT NULL,
   `test_start_time` char(5) NOT NULL,
   `test_duration` int(11) NOT NULL,
-  `preference` text,
+  `testing_instructions` text,
   `accommodation` text,
   `return_type` text,
   `is_valid` int(1),
