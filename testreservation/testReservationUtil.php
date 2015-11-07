@@ -93,6 +93,7 @@ function obtainCourseTeacherMap($userId, $selectedCourses) {
 		}
 	} catch ( Exception $e ) {
 	}
+	return $courseTeacherMap;
 }
 function invalidateTargetReservation($reservationId) {
 	global $DB;

@@ -64,14 +64,16 @@ try {
 echo $OUTPUT->header ();
 ?>
 <link rel="stylesheet" type="text/css"
-	href="<?php echo $CFG->wwwroot?>/lib/jquery/ui-1.11.4/jquery-ui.min.css">
+	href="<?php echo $CFG->wwwroot?>/lib/jquery/ui-1.10.4/css/base/jquery-ui.min.css">
+<!-- <link rel="stylesheet" type="text/css" 
+	href="<?php //echo $CFG->wwwroot?>/testreservation/css/tablesorter/style.css">-->
 <link rel="stylesheet" type="text/css"
-	href="<?php echo $CFG->wwwroot?>/testreservation/css/tablesorter/style.css">
-	
+	href="<?php //echo $CFG->wwwroot?>/testreservation/css/jquery.dataTables.min.css">		
 <table id="testReservationRecordTable" class= "tablesorter">
 	<thead>
 		<!-- Date | Subject | Start time| Student CLID | Name | Duration | Finish time | Preference| Accommodation | Ret type -->
 		<tr>
+			
 			<th>Date</th>
 			<th>Subject</th>
 			<th>Start time</th>
@@ -92,7 +94,7 @@ echo $OUTPUT->header ();
 		<?php
 		foreach ( $formatedRecordArray as $k => $formatedRecord ) {
 			echo "<tr>";
-			echo "<td class = 'recordData' style = 'display: none'>" . json_encode ( $recordArray [$k] ) . "</td>";
+		//	echo "<td class = 'recordData' style = 'display: none'>" . json_encode ( $recordArray [$k] ) . "</td>";
 			foreach ( $formatedRecord as $field ) {
 				echo "<td>$field</td>";
 			}
@@ -171,11 +173,13 @@ echo $OUTPUT->header ();
 	</form>
 </div>
 <script type="text/javascript"
-	src="<?php echo $CFG->wwwroot?>/lib/jquery/jquery-1.11.2.min.js"></script>
+	src="<?php echo $CFG->wwwroot?>/lib/jquery/jquery-1.11.0.min.js"></script>
 <script type="text/javascript"
-	src="<?php echo $CFG->wwwroot?>/lib/jquery/ui-1.11.4/jquery-ui.min.js"></script>
+	src="<?php echo $CFG->wwwroot?>/lib/jquery/ui-1.10.4/jquery-ui.min.js"></script>
+<!-- <script type="text/javascript" 
+	src="<?php echo $CFG->wwwroot?>/testreservation/js/jquery.tablesorter.min.js"></script>-->
 <script type="text/javascript"
-	src="<?php echo $CFG->wwwroot?>/testreservation/js/jquery.tablesorter.min.js"></script>
+	src="<?php echo $CFG->wwwroot?>/testreservation/js/jquery.dataTables.min.js"></script>
 
 <script type="text/javascript"
 	src="<?php echo $CFG->wwwroot?>/testreservation/js/testReservationTable.js"></script>
@@ -187,7 +191,7 @@ $(".button").button();
 // $('.delete').button( "option", "icons", 'ui-icon-trash');
 $(".dialog").dialog({"autoOpen":false});
 $( "#warningDialog" ).on( "dialogclose", function( event, ui ) {$("#warningDialog p").text("");} );
-$('.tablesorter').tablesorter();
+$('#testReservationRecordTable').dataTable();
 });
 
 </script>

@@ -44,7 +44,7 @@ $courseTeacherMapJson = json_encode ( $courseTeacherMap );
 echo $OUTPUT->header ();
 ?>
 <link rel="stylesheet" type="text/css"
-	href="<?php echo $CFG->wwwroot?>/lib/jquery/ui-1.11.4/jquery-ui.min.css">
+	href="<?php echo $CFG->wwwroot?>/lib/jquery/ui-1.10.4/css/base/jquery-ui.min.css">
 <link rel="stylesheet" type="text/css"
 	href="<?php echo $CFG->wwwroot?>/testreservation/css/testReservationForm.css">
 
@@ -232,9 +232,9 @@ echo $OUTPUT->header ();
 </div>
 
 <script type="text/javascript"
-	src="<?php echo $CFG->wwwroot?>/lib/jquery/jquery-1.11.2.min.js"></script>
+	src="<?php echo $CFG->wwwroot?>/lib/jquery/jquery-1.11.0.min.js"></script>
 <script type="text/javascript"
-	src="<?php echo $CFG->wwwroot?>/lib/jquery/ui-1.11.4/jquery-ui.min.js"></script>
+	src="<?php echo $CFG->wwwroot?>/lib/jquery/ui-1.10.4/jquery-ui.min.js"></script>
 <script type="text/javascript"
 	src="<?php echo $CFG->wwwroot?>/testreservation/js/jquery.inputmask.bundle.min.js"></script>
 <script type="text/javascript"
